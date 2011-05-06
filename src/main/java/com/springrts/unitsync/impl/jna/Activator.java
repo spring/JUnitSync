@@ -19,6 +19,7 @@ package com.springrts.unitsync.impl.jna;
 
 
 import com.springrts.unitsync.Unitsync;
+import com.springrts.unitsync.UnitsyncSimple;
 import java.util.Dictionary;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -48,7 +49,9 @@ public class Activator implements BundleActivator {
 	public void start(BundleContext context) {
 
 		Dictionary dict = null;
-		context.registerService(Unitsync.class.getName(), new UnitsyncImpl(), dict);
+		UnitsyncImpl unitsyncImpl = new UnitsyncImpl();
+		context.registerService(Unitsync.class.getName(), unitsyncImpl, dict);
+		context.registerService(UnitsyncSimple.class.getName(), unitsyncImpl, dict);
 	}
 
 	/**
