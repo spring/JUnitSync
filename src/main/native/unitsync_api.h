@@ -1,5 +1,7 @@
-#ifndef UNITSYNC_API_H
-#define UNITSYNC_API_H
+/* This file is part of the Spring engine (GPL v2 or later), see LICENSE.html */
+
+#ifndef _UNITSYNC_API_H
+#define _UNITSYNC_API_H
 
 #ifdef PLAIN_API_STRUCTURE
 	// This is useful when parsing/wrapping this file with preprocessor support.
@@ -39,41 +41,69 @@
 EXPORT(const char* ) GetNextError();
 
 /**
- * @brief Retrieve the synced version of Spring,
+ * @brief Retrieve the synced version of Spring
  *   this unitsync was compiled with.
- * @return The synced Spring/unitsync version, examples:
+ *
+ * Returns a string specifying the synced part of the version of Spring used to
+ * build this library with.
+ *
+ * Before release 83:
+ *   Release:
+ *     The version will be of the format "Major.Minor".
+ *     With Major=0.82 and Minor=6, the returned version would be "0.82.6".
+ *   Development:
+ *     They use the same format, but major ends with a +, for example "0.82+.5".
+ *   Examples:
  *   - 0.78.0: 1st release of 0.78
  *   - 0.82.6: 7th release of 0.82
  *   - 0.82+.5: some test-version from after the 6th release of 0.82
  *   - 0.82+.0: some dev-version from after the 1st release of 0.82
  *     (on the main dev branch)
  *
- * Returns a string specifying the synced part of the version of Spring used to
- * build this library with.
- *
- * The returned version will be of the format "Major.Minor".
- * With Major=0.82 and Minor=6, the returned version would be "0.82.6".
- * It was added to aid in lobby creation, to check if the engine version in use
- * is sync-compatible with the current stable one.
+ * After release 83:
+ *   You may check for sync compatibility by using a string equality test with
+ *   the return of this function.
+ *   Release:
+ *     Contains only the major version number, for example "83".
+ *     You may combine this with the patch-set to get the full version,
+ *     for example "83.2".
+ *   Development:
+ *     The full version, for example "83.0.1-13-g1234567 develop", and therefore
+ *     it would not make sense to append the patch-set in such a case.
+ *   Examples:
+ *   - 83: any 83 release, for example 83.0 or 83.1
+ *     this may only be on the the master or hotfix branch
+ *   - 83.0.1-13-g1234567 develop: some dev-version after the 1st release of 83
+ *     on the develop branch
  */
 EXPORT(const char* ) GetSpringVersion();
 
 /**
- * @brief Retrieve the unsynced/patch-set part of the version of Spring,
+ * @brief Returns the unsynced/patch-set part of the version of Spring
  *   this unitsync was compiled with.
- * @return The unsynced/patch-set Spring/unitsync version,
- *   for example "1" if the whole spring version is "0.82.6.1".
  *
- * Returns a string specifying the unsynced/patch-set part of the version of
- * Spring used to build this library with.
+ * Before release 83:
+ *   You may want to use this together with GetSpringVersion() to form the whole
+ *   version like this:
+ *   GetSpringVersion() + "." + GetSpringVersionPatchset()
+ *   This will provide you with a version of the format "Major.Minor.Patchset".
+ *   Examples:
+ *   - 0.82.6.0                in this case, the 0 is usually omitted -> 0.82.6
+ *   - 0.82.6.1                release
+ *   - 0.82+.6.1               dev build
  *
- * The You may use this together with GetSpringVersion(), to form the whole
- * version like this:
- * GetSpringVersion() + "." + GetSpringVersionPatchset()
- * This will provide you with a version of the format "Major.Minor.Patchset",
- * for example "0.82.6.0" or "0.82.6.1".
+ * After release 83:
+ *   You should only possibly append this to the main version returned by
+ *   GetSpringVersion(), if it is a release, as otherwise GetSpringVersion()
+ *   already contains the patch-set.
  */
 EXPORT(const char* ) GetSpringVersionPatchset();
+
+/**
+ * @brief Returns true if the version of Spring this unitsync was compiled
+ *   with is a release version, false if it is a development version.
+ */
+EXPORT(bool        ) IsSpringReleaseVersion();
 
 /**
  * @brief Initialize the unitsync library
@@ -111,8 +141,10 @@ EXPORT(void        ) UnInit();
 EXPORT(const char* ) GetWritableDataDirectory();
 
 /**
- * @brief Get the total number of readable data directories used by unitsync and Spring
- * @return -1 if there was an error, otherwise integer >= 0
+ * Returns the total number of readable data directories used by unitsync and
+ * the engine.
+ * @return negative integer (< 0) on error;
+ *   the number of data directories available (>= 0) on success
  */
 EXPORT(int         ) GetDataDirectoryCount();
 
@@ -124,43 +156,49 @@ EXPORT(const char* ) GetDataDirectory(int index);
 
 /**
  * @brief Process another unit and return how many are left to process
- * @return The number of unprocessed units to be handled
  *
  * Call this function repeatedly until it returns 0 before calling any other
  * function related to units.
  *
- * Because of risk for infinite loops, this function can not return any error
- * code. It is advised to poll GetNextError() after calling this function.
- *
  * Before any units are available, you will first need to map a mod's archives
  * into the VFS using AddArchive() or AddAllArchives().
+ *
+ * @return negative integer (< 0) on error;
+ *   the number of units left to process (>= 0) on success.
+ *   Because of risk for infinite loops, this function does not yet return
+ *   any error code.
+ *   It is advised to poll GetNextError() after calling this function.
+ * @see ProcessUnitsNoChecksum
  */
 EXPORT(int         ) ProcessUnits();
 /**
- * @brief Identical to ProcessUnits(), neither generates checksum anymore
+ * Identical to ProcessUnits().
+ * Neither generates checksum anymore.
  * @see ProcessUnits
+ * @deprecated in June 2011
  */
 EXPORT(int         ) ProcessUnitsNoChecksum();
 
 /**
  * @brief Get the number of units
- * @return Zero on error; the number of units available on success
+ * @return negative integer (< 0) on error;
+ *   the number of units available (>= 0) on success
  *
  * Will return the number of units. Remember to call ProcessUnits() beforehand
- * until it returns 0.  As ProcessUnits() is called the number of processed
+ * until it returns 0. As ProcessUnits() is called the number of processed
  * units goes up, and so will the value returned by this function.
  *
  * Example:
  *		@code
- *		while (ProcessUnits() != 0) {}
- *		int unit_number = GetUnitCount();
+ *		while (ProcessUnits() > 0) {}
+ *		int numUnits = GetUnitCount();
  *		@endcode
  */
 EXPORT(int         ) GetUnitCount();
 /**
  * @brief Get the units internal mod name
  * @param unit The units id number
- * @return The units internal mod name or NULL on error
+ * @return The units internal mod name, or NULL on error
  *
  * This function returns the units internal mod name. For example it would
  * return 'armck' and not 'Arm Construction kbot'.
@@ -267,7 +305,8 @@ EXPORT(int         ) GetMapInfo(const char* mapName, MapInfo* outInfo);
 
 /**
  * @brief Get the number of maps available
- * @return Zero on error; the number of maps available on success
+ * @return negative integer (< 0) on error;
+ *   the number of maps available (>= 0) on success
  *
  * Call this before any of the map functions which take a map index as
  * parameter.
@@ -291,7 +330,7 @@ EXPORT(int         ) GetMapCount();
  */
 EXPORT(const char* ) GetMapName(int index);
 /**
- * @brief Get the file-name of a map
+ * @brief Get the file-name (+ VFS-path) of a map
  * @return NULL on error; the file-name of the map (e.g. "maps/SmallDivide.smf")
  *   on success
  */
@@ -309,37 +348,44 @@ EXPORT(const char* ) GetMapDescription(int index);
 EXPORT(const char* ) GetMapAuthor(int index);
 /**
  * @brief Get the width of a map
- * @return -1 on error; the width of a map
+ * @return negative integer (< 0) on error;
+ *   the width of a map (>= 0) on success
  */
 EXPORT(int         ) GetMapWidth(int index);
 /**
  * @brief Get the height of a map
- * @return -1 on error; the height of a map
+ * @return negative integer (< 0) on error;
+ *   the height of a map (>= 0) on success
  */
 EXPORT(int         ) GetMapHeight(int index);
 /**
  * @brief Get the tidal speed of a map
- * @return -1 on error; the tidal speed of the map on success
+ * @return negative integer (< 0) on error;
+ *   the tidal speed of the map (>= 0) on success
  */
 EXPORT(int         ) GetMapTidalStrength(int index);
 /**
  * @brief Get the minimum wind speed on a map
- * @return -1 on error; the minimum wind speed on a map
+ * @return negative integer (< 0) on error;
+ *   the minimum wind speed on the map (>= 0) on success
  */
 EXPORT(int         ) GetMapWindMin(int index);
 /**
  * @brief Get the maximum wind strenght on a map
- * @return -1 on error; the maximum wind strenght on a map
+ * @return negative integer (< 0) on error;
+ *   the maximum wind strenght on the map (>= 0) on success
  */
 EXPORT(int         ) GetMapWindMax(int index);
 /**
  * @brief Get the gravity of a map
- * @return -1 on error; the gravity of the map on success
+ * @return negative integer (< 0) on error;
+ *   the gravity of the map (>= 0) on success
  */
 EXPORT(int         ) GetMapGravity(int index);
 /**
- * @brief Get the number of resources supported available
- * @return -1 on error; the number of resources supported available on success
+ * @brief Get the number of supported resources
+ * @return negative integer (< 0) on error;
+ *   the number of supported resources (>= 0) on success
  */
 EXPORT(int         ) GetMapResourceCount(int index);
 /**
@@ -354,14 +400,15 @@ EXPORT(const char* ) GetMapResourceName(int index, int resourceIndex);
 EXPORT(float       ) GetMapResourceMax(int index, int resourceIndex);
 /**
  * @brief Get the extractor radius for a map resource
- * @return -1 on error; the extractor radius for a map resource on success
+ * @return negative integer (< 0) on error;
+ *   the extractor radius for a map resource (>= 0) on success
  */
 EXPORT(int         ) GetMapResourceExtractorRadius(int index, int resourceIndex);
 
 /**
  * @brief Get the number of defined start positions for a map
- * @return -1 on error; the number of defined start positions for a map
- *         on success
+ * @return negative integer (< 0) on error;
+ *   the number of defined start positions for a map (>= 0) on success
  */
 EXPORT(int         ) GetMapPosCount(int index);
 /**
@@ -380,18 +427,19 @@ EXPORT(float       ) GetMapPosZ(int index, int posIndex);
 /**
  * @brief return the map's minimum height
  * @param mapName name of the map, e.g. "SmallDivide"
+ * @return 0.0f on error; the map's minimum height on success
  *
  * Together with maxHeight, this determines the
  * range of the map's height values in-game. The
  * conversion formula for any raw 16-bit height
  * datum <code>h</code> is
- *
  *    <code>minHeight + (h * (maxHeight - minHeight) / 65536.0f)</code>
  */
 EXPORT(float       ) GetMapMinHeight(const char* mapName);
 /**
  * @brief return the map's maximum height
  * @param mapName name of the map, e.g. "SmallDivide"
+ * @return 0.0f on error; the map's maximum height on success
  *
  * Together with minHeight, this determines the
  * range of the map's height values in-game. See
@@ -402,7 +450,8 @@ EXPORT(float       ) GetMapMaxHeight(const char* mapName);
 /**
  * @brief Retrieves the number of archives a map requires
  * @param mapName name of the map, e.g. "SmallDivide"
- * @return Zero on error; the number of archives on success
+ * @return negative integer (< 0) on error;
+ *   the number of archives (>= 0) on success
  *
  * Must be called before GetMapArchiveName()
  */
@@ -453,8 +502,8 @@ EXPORT(unsigned short*) GetMinimap(const char* fileName, int mipLevel);
  * @param name     Of which infomap to retrieve the dimensions.
  * @param width    This is set to the width of the infomap, or 0 on error.
  * @param height   This is set to the height of the infomap, or 0 on error.
- * @return Non-zero when the infomap was found with a non-zero size; zero on
- *   error.
+ * @return negative integer (< 0) on error;
+ *   the infomap's size (>= 0) on success
  * @see GetInfoMap
  */
 EXPORT(int         ) GetInfoMapSize(const char* mapName, const char* name, int* width, int* height);
@@ -465,9 +514,10 @@ EXPORT(int         ) GetInfoMapSize(const char* mapName, const char* name, int* 
  * @param data     Pointer to a memory location with enough room to hold the
  *   infomap data.
  * @param typeHint One of bm_grayscale_8 (or 1) and bm_grayscale_16 (or 2).
- * @return Non-zero if the infomap was successfully extracted (and optionally
- * converted), or zero on error (map was not found, infomap was not found, or
- * typeHint could not be honored.)
+ * @return negative integer (< 0) on error;
+ *   the infomap's size (> 0) on success
+ * An error could indicate that the map was not found, the infomap was not found
+ * or typeHint could not be honored.
  *
  * This function extracts an infomap from a map. This can currently be one of:
  * "height", "metal", "grass", "type". The heightmap is natively in 16 bits per
@@ -479,14 +529,16 @@ EXPORT(int         ) GetInfoMap(const char* mapName, const char* name, unsigned 
 
 /**
  * @brief Retrieves the number of Skirmish AIs available
- * @return Zero on error; The number of Skirmish AIs available on success
+ * @return negative integer (< 0) on error;
+ *   the number of Skirmish AIs available (>= 0) on success
  * @see GetMapCount
  */
 EXPORT(int         ) GetSkirmishAICount();
 /**
  * @brief Retrieves the number of info items available for a given Skirmish AI
  * @param index Skirmish AI index/id
- * @return Zero on error; the number of info items available on success
+ * @return negative integer (< 0) on error;
+ *   the number of info items available (>= 0) on success
  * @see GetSkirmishAICount
  *
  * Be sure to call GetSkirmishAICount() prior to using this function.
@@ -544,7 +596,7 @@ EXPORT(const char* ) GetInfoValueString(int index);
 /**
  * @brief Retrieves an info item's value of type integer
  * @param index info item index/id
- * @return NULL on error; the info item's value on success
+ * @return the info item's value; -1 might imply a value of -1 or an error
  * @see GetSkirmishAIInfoCount
  * @see GetInfoType
  *
@@ -554,7 +606,7 @@ EXPORT(int         ) GetInfoValueInteger(int index);
 /**
  * @brief Retrieves an info item's value of type float
  * @param index info item index/id
- * @return NULL on error; the info item's value on success
+ * @return the info item's value; -1.0f might imply a value of -1.0f or an error
  * @see GetSkirmishAIInfoCount
  * @see GetInfoType
  *
@@ -564,7 +616,7 @@ EXPORT(float       ) GetInfoValueFloat(int index);
 /**
  * @brief Retrieves an info item's value of type bool
  * @param index info item index/id
- * @return NULL on error; the info item's value on success
+ * @return the info item's value; false might imply the value false or an error
  * @see GetSkirmishAIInfoCount
  * @see GetInfoType
  *
@@ -583,7 +635,8 @@ EXPORT(const char* ) GetInfoDescription(int index);
 /**
  * @brief Retrieves the number of options available for a given Skirmish AI
  * @param index Skirmish AI index/id
- * @return Zero on error; the number of Skirmish AI options available on success
+ * @return negative integer (< 0) on error;
+ *   the number of Skirmish AI options available (>= 0) on success
  * @see GetSkirmishAICount
  * @see GetOptionKey
  * @see GetOptionName
@@ -596,21 +649,16 @@ EXPORT(int         ) GetSkirmishAIOptionCount(int index);
 
 /**
  * @brief Retrieves the number of mods available
- * @return Zero on error; The number of mods available on success
+ * @return negative integer (< 0) on error;
+ *   the number of mods available (>= 0) on success
  * @see GetMapCount
  */
 EXPORT(int         ) GetPrimaryModCount();
 /**
- * @brief Retrieves the name of this mod
- * @param index The mods index/id
- * @return NULL on error; The mods name on success
- *
- * Returns the name of the mod usually found in ModInfo.lua.
- * Be sure you have made a call to GetPrimaryModCount() prior to using this.
-
  * @brief Retrieves the number of info items available for this mod
  * @param index The mods index/id
- * @return Zero on error; the number of info items available on success
+ * @return negative integer (< 0) on error;
+ *   the number of info items available (>= 0) on success
  * @see GetPrimaryModCount
  * @see GetInfoKey
  * @see GetInfoType
@@ -726,7 +774,8 @@ EXPORT(const char* ) GetPrimaryModArchive(int index);
 /**
  * @brief Retrieves the number of archives a mod requires
  * @param index The index of the mod
- * @return Zero on error; the number of archives this mod depends on otherwise
+ * @return negative integer (< 0) on error;
+ *   the number of archives this mod depends on (>= 0) on success
  *
  * This is used to get the entire list of archives that a mod requires.
  * Call GetPrimaryModArchiveCount() with selected mod first to get number of
@@ -742,7 +791,7 @@ EXPORT(const char* ) GetPrimaryModArchive(int index);
 EXPORT(int         ) GetPrimaryModArchiveCount(int index);
 /**
  * @brief Retrieves the name of the current mod's archive.
- * @param archiveNr The archive's index/id.
+ * @param archive The archive's index/id.
  * @return NULL on error; the name of the archive on success
  * @see GetPrimaryModArchiveCount
  */
@@ -750,7 +799,9 @@ EXPORT(const char* ) GetPrimaryModArchiveList(int archive);
 /**
  * @brief The reverse of GetPrimaryModName()
  * @param name The name of the mod
- * @return -1 if the mod can not be found; the index of the mod otherwise
+ * @return negative integer (< 0) on error
+ *   (game was not found or GetPrimaryModCount() was not called yet);
+ *   the index of the mod (>= 0) on success
  */
 EXPORT(int         ) GetPrimaryModIndex(const char* name);
 /**
@@ -770,7 +821,8 @@ EXPORT(unsigned int) GetPrimaryModChecksumFromName(const char* name);
 
 /**
  * @brief Retrieve the number of available sides
- * @return Zero on error; the number of sides on success
+ * @return negative integer (< 0) on error;
+ *   the number of sides (>= 0) on success
  *
  * This function parses the mod's side data, and returns the number of sides
  * available. Be sure to map the mod into the VFS using AddArchive() or
@@ -795,7 +847,8 @@ EXPORT(const char* ) GetSideStartUnit(int side);
 /**
  * @brief Retrieve the number of map options available
  * @param mapName the name of the map, e.g. "SmallDivide"
- * @return Zero on error; the number of map options available on success
+ * @return negative integer (< 0) on error;
+ *   the number of map options available (>= 0) on success
  * @see GetOptionKey
  * @see GetOptionName
  * @see GetOptionDesc
@@ -804,7 +857,8 @@ EXPORT(const char* ) GetSideStartUnit(int side);
 EXPORT(int         ) GetMapOptionCount(const char* mapName);
 /**
  * @brief Retrieve the number of mod options available
- * @return Zero on error; the number of mod options available on success
+ * @return negative integer (< 0) on error;
+ *   the number of mod options available (>= 0) on success
  * @see GetOptionKey
  * @see GetOptionName
  * @see GetOptionDesc
@@ -817,7 +871,8 @@ EXPORT(int         ) GetModOptionCount();
 /**
  * @brief Returns the number of options available in a specific option file
  * @param fileName the VFS path to a Lua file containing an options table
- * @return Zero on error; the number of options available on success
+ * @return negative integer (< 0) on error;
+ *   the number of options available (>= 0) on success
  * @see GetOptionKey
  * @see GetOptionName
  * @see GetOptionDesc
@@ -906,7 +961,8 @@ EXPORT(const char* ) GetOptionDesc(int optIndex);
 /**
  * @brief Retrieve an option's type
  * @param optIndex option index/id
- * @return opt_error on error; the option's type on success
+ * @return negative integer (< 0) or opt_error (0) on error;
+ *   the option's type on success
  *
  * Do not use this before having called Get*OptionCount().
  * @see GetMapOptionCount
@@ -919,7 +975,8 @@ EXPORT(int         ) GetOptionType(int optIndex);
 /**
  * @brief Retrieve an opt_bool option's default value
  * @param optIndex option index/id
- * @return Zero on error; the option's default value (0 or 1) on success
+ * @return negative integer (< 0) on error;
+ *   the option's default value (0 or 1) on success
  *
  * Do not use this before having called Get*OptionCount().
  * @see GetMapOptionCount
@@ -932,7 +989,8 @@ EXPORT(int         ) GetOptionBoolDef(int optIndex);
 /**
  * @brief Retrieve an opt_number option's default value
  * @param optIndex option index/id
- * @return Zero on error; the option's default value on success
+ * @return the option's default value;
+ *   -1.0f might imply a value of -1.0f or an error
  *
  * Do not use this before having called Get*OptionCount().
  * @see GetMapOptionCount
@@ -968,7 +1026,8 @@ EXPORT(float       ) GetOptionNumberMax(int optIndex);
 /**
  * @brief Retrieve an opt_number option's step value
  * @param optIndex option index/id
- * @return Zero on error; the option's step value on success
+ * @return the option's step value;
+ *   -1.0f might imply a value of -1.0f or an error
  *
  * Do not use this before having called Get*OptionCount().
  * @see GetMapOptionCount
@@ -993,7 +1052,8 @@ EXPORT(const char* ) GetOptionStringDef(int optIndex);
 /**
  * @brief Retrieve an opt_string option's maximum length
  * @param optIndex option index/id
- * @return Zero on error; the option's maximum length on success
+ * @return negative integer (< 0) on error;
+ *    the option's maximum length (>= 0) on success
  *
  * Do not use this before having called Get*OptionCount().
  * @see GetMapOptionCount
@@ -1006,7 +1066,8 @@ EXPORT(int         ) GetOptionStringMaxLen(int optIndex);
 /**
  * @brief Retrieve an opt_list option's number of available items
  * @param optIndex option index/id
- * @return Zero on error; the option's number of available items on success
+ * @return negative integer (< 0) on error;
+ *    the option's number of available items (>= 0) on success
  *
  * Do not use this before having called Get*OptionCount().
  * @see GetMapOptionCount
@@ -1069,7 +1130,8 @@ EXPORT(const char* ) GetOptionListItemDesc(int optIndex, int itemIndex);
 
 /**
  * @brief Retrieve the number of valid maps for the current mod
- * @return 0 on error; the number of valid maps on success
+ * @return negative integer (< 0) on error;
+ *    the number of valid maps (>= 0) on success
  *
  * A return value of 0 means that any map can be selected.
  * Be sure to map the mod into the VFS using AddArchive() or AddAllArchives()
@@ -1108,7 +1170,7 @@ EXPORT(void        ) CloseFileVFS(int file);
  * @param buf output buffer, must be at least of size numBytes
  * @param numBytes how many bytes to read from the file
  * @return -1 on error; the number of bytes read on success
- * (if this is less than length you reached the end of the file.)
+ * (if this is less than length, you reached the end of the file.)
  */
 EXPORT(int         ) ReadFileVFS(int file, unsigned char* buf, int numBytes);
 /**
@@ -1163,7 +1225,7 @@ EXPORT(int         ) InitSubDirsVFS(const char* path, const char* pattern, const
  *   this one.
  * @param nameBuf out-param to contain the VFS file-path
  * @param size should be set to the size of nameBuf
- * @return new file handle or 0
+ * @return new file handle or 0 on error
  * @see InitFindVFS
  * @see InitDirListVFS
  * @see InitSubDirsVFS
@@ -1215,7 +1277,8 @@ EXPORT(int         ) FindFilesArchive(int archive, int file, char* nameBuf, int*
  * @brief Open an archive member
  * @param archive the archive handle as returned by OpenArchive()
  * @param name the name of the file
- * @return Zero on error; a non-zero file handle on success.
+ * @return negative integer (< 0) on error;
+ *   the file-ID/-handle within the archive (>= 0) on success
  *
  * The returned file handle is needed for subsequent calls to ReadArchiveFile(),
  * CloseArchiveFile() and SizeArchiveFile().
@@ -1349,4 +1412,4 @@ EXPORT(const char*) lpGetStrKeyStrVal(const char* key, const char* defValue);
 
 /** @} */
 
-#endif // UNITSYNC_API_H
+#endif // _UNITSYNC_API_H
