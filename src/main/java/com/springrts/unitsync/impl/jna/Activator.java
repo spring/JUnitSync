@@ -26,15 +26,15 @@ import org.osgi.framework.BundleContext;
 
 /**
  * This bundle loads the native library its self.
- * Each time the bundle is installed, the native library is loaded,
- * and respectively un-loaded when the bundle is un-installed.
+ * Each time the bundle is started, the native library is loaded,
+ * and respectively un-loaded when the bundle is stopped.
  * The native library is:
  * <list>
  * <il>unitsync.dll (Windows)</il>
  * <il>libunitsync.so (Unix/Linux/BSD)</il>
  * <il>unitsync.dylib (Mac OS X)</il>
  * </list>
- * You may specify the dir containing to unitsync like this:
+ * You may specify the dir containing unitsync like this:
  * <code>System.setProperty("jna.library.path", unitsyncDir);</code>
  * or the path to unitsync like this:
  * <code>Preferences.userRoot().put("unitsync.path", unitsyncPath);</code>
