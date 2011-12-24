@@ -141,11 +141,10 @@
 
 	<dependencies>
 
-		<!-- OSGi - API -->
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.core</artifactId>
-			<version>4.2.0</version>
+			<version>4.3.0</version>
 			<type>jar</type>
 		</dependency>
 
@@ -165,7 +164,7 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.7</version>
+			<version>4.10</version>
 			<scope>test</scope>
 		</dependency>
 
