@@ -11,6 +11,7 @@
 		<project.build.encoding>UTF-8</project.build.encoding>
 		<project.build.sourceEncoding>${project.build.encoding}</project.build.sourceEncoding>
 		<project.build.resourceEncoding>${project.build.encoding}</project.build.resourceEncoding>
+		<jna.version>3.2.5</jna.version>
 	</properties>
 
 	<groupId>com.springrts</groupId>
@@ -54,6 +55,16 @@
 		</developer>
 	</developers>
 
+	<contributors>
+		<contributor>
+			<name>jahwag (Cheesecan)</name>
+			<email>jahziah.wagner@gmail.com</email>
+			<roles>
+				<role>patch writer</role>
+			</roles>
+		</contributor>
+	</contributors>
+
 	<scm>
 		<connection>scm:git:git://github.com/spring/JUnitSync.git</connection>
 		<url>http://github.com/spring/JUnitSync</url>
@@ -79,14 +90,28 @@
 			<plugin>
 				<groupId>org.apache.felix</groupId>
 				<artifactId>maven-bundle-plugin</artifactId>
-				<version>2.3.4</version>
+				<version>2.3.6</version>
 				<extensions>true</extensions>
 				<configuration>
 					<instructions>
 						<!--<_donotcopy>(CVS|.svn|.git|config.properties)</_donotcopy>-->
 						<Import-Package>org.osgi.framework,com.sun.jna,com.sun.jna.ptr</Import-Package>
-						<Export-Package>com.springrts.unitsync</Export-Package>
+						<Export-Package>com.springrts.unitsync,com.springrts.unitsync.impl.jna,com.sun.jna;version=${jna.version},com.sun.jna.ptr;version=${jna.version},com.sun.jna.win32;version=${jna.version}</Export-Package>
+						<Private-Package>com.sun.jna.darwin,com.sun.jna.freebsd-amd64,com.sun.jna.freebsd-i386,com.sun.jna.linux-amd64,com.sun.jna.linux-i386,com.sun.linux-ia64,com.sun.jna.sunos-amd64,com.sun.jna.sunos-sparc,com.sun.jna.sunos-sparcv9,com.sun.jna.sunos-x86,com.sun.jna.win32-amd64,com.sun.jna.win32-x86</Private-Package>
 						<Bundle-Activator>com.springrts.unitsync.impl.jna.Activator</Bundle-Activator>
+						<Bundle-NativeCode>
+							com/sun/jna/win32-x86/jnidispatch.dll;processor=x86;osname=win32,
+							com/sun/jna/win32-amd64/jnidispatch.dll;processor=x86-64;osname=win32,
+							com/sun/jna/sunos-x86/libjnidispatch.so;processor=x86;osname=sunos,
+							com/sun/jna/sunos-amd64/libjnidispatch.so;processor=x86-64;osname=sunos,
+							com/sun/jna/sunos-sparc/libjnidispatch.so;processor=sparc;osname=sunos,
+							com/sun/jna/sunos-sparcv9/libjnidispatch.so;processor=sparcv9;osname=sunos,
+							com/sun/jna/linux-i386/libjnidispatch.so;processor=x86;osname=linux,
+							com/sun/jna/linux-amd64/libjnidispatch.so;processor=x86-64;osname=linux,
+							com/sun/jna/freebsd-i386/libjnidispatch.so;processor=x86;osname=freebsd,
+							com/sun/jna/freebsd-amd64/libjnidispatch.so;processor=x86-64;osname=freebsd,
+							com/sun/jna/darwin/libjnidispatch.jnilib;osname=macos
+						</Bundle-NativeCode>
 					</instructions>
 				</configuration>
 			</plugin>
@@ -158,7 +183,7 @@
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna</artifactId>
-			<version>3.2.5</version>
+			<version>${jna.version}</version>
 		</dependency>
 
 		<dependency>
